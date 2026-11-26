@@ -1,6 +1,6 @@
 # Publish: main -> dev -> test1 -> test2 -> prod.
 # Each environment: ownership check, dry-run, publish.
-# prod: dry-run stage, then approval (configured on environment apim-prod), then dry-run + publish.
+# prod: dry-run stage, then approval (configured on the prod Azure DevOps environment), then dry-run + publish.
 
 name: apiops-publish-$(Date:yyyyMMdd)$(Rev:.r)
 
@@ -32,6 +32,13 @@ stages:
       - job: Check
         steps:
           - checkout: self
+          # An unknown environment name would be auto-created without approval checks.
+          - bash: |
+              if grep -n 'REPLACE-ME' pipelines/variables/*.yml; then
+                echo "##vso[task.logissue type=error]pipelines/variables/*.yml contains placeholders."
+                exit 1
+              fi
+            displayName: Check environment settings
           - template: templates/setup.yml
           - pwsh: >
               ./scripts/Test-Ownership.ps1

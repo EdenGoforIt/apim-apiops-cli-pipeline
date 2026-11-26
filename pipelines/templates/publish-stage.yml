@@ -1,4 +1,4 @@
-# Publish stage for one environment (Azure DevOps environment: apim-<environment>).
+# Publish stage for one environment (Azure DevOps environment: devOpsEnvironment in pipelines/variables/<environment>.yml).
 # planStage: true adds a dry-run stage before the publish stage, so it runs before the environment approval.
 parameters:
   - name: environment
@@ -37,7 +37,7 @@ stages:
       - template: ../variables/${{ parameters.environment }}.yml
     jobs:
       - deployment: Publish
-        environment: apim-${{ parameters.environment }}
+        environment: ${{ variables.devOpsEnvironment }}
         strategy:
           runOnce:
             deploy:

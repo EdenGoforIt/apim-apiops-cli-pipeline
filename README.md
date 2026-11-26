@@ -14,17 +14,17 @@ Extract and publish our Azure API Management resources with [APIOps CLI](https:/
 | `pipelines/apiops-extract.yml` | Extract from dev and open a PR. |
 | `pipelines/apiops-publish.yml` | Publish to dev → test1 → test2 → prod. |
 | `pipelines/templates/` | Shared steps and stages. |
-| `pipelines/variables/<env>.yml` | Service connection, resource group and APIM name per environment. |
+| `pipelines/variables/<env>.yml` | Service connection, resource group, APIM name and Azure DevOps environment per environment. |
 | `scripts/Test-Ownership.ps1` | Ownership check, run by both pipelines. |
 
 ## Environments
 
-| Environment | Role | Azure DevOps environment | Approval |
+| Environment | Role | Settings file | Approval |
 |---|---|---|---|
-| dev | Extract source, publish target | `apim-dev` | No |
-| test1 | Publish target | `apim-test1` | No |
-| test2 | Publish target | `apim-test2` | No |
-| prod | Publish target | `apim-prod` | Yes |
+| dev | Extract source, publish target | `pipelines/variables/dev.yml` | No |
+| test1 | Publish target | `pipelines/variables/test1.yml` | No |
+| test2 | Publish target | `pipelines/variables/test2.yml` | No |
+| prod | Publish target | `pipelines/variables/prod.yml` | Yes |
 
 ## Setup
 
@@ -36,7 +36,7 @@ Replace every `REPLACE-ME` value:
 |---|---|
 | `configuration.extractor.yaml` | API, backend and other resource names. See `configuration.extractor.example.yaml`. |
 | `configuration.test1.yaml`, `configuration.test2.yaml`, `configuration.prod.yaml` | Environment-specific values. See `configuration.example.yaml`. |
-| `pipelines/variables/<env>.yml` | Service connection name, resource group, APIM name. |
+| `pipelines/variables/<env>.yml` | Service connection name, resource group, APIM name, Azure DevOps environment name. |
 
 The pipelines fail while placeholders remain.
 
@@ -44,9 +44,9 @@ The pipelines fail while placeholders remain.
 
 - [ ] **Service connections**: one per environment (Azure Resource Manager, workload identity federation). Names must match `pipelines/variables/<env>.yml`.
 - [ ] **Role assignments**: each service connection identity needs `API Management Service Contributor` on its APIM instance.
-- [ ] **Environments**: create `apim-dev`, `apim-test1`, `apim-test2`, `apim-prod`.
+- [ ] **Environments**: one Azure DevOps environment per APIM environment (Pipelines > Environments). Names go in `devOpsEnvironment` in `pipelines/variables/<env>.yml`.
 - [ ] **Exclusive lock**: add an **Exclusive lock** check to all four environments.
-- [ ] **Prod approval**: add an **Approvals** check to `apim-prod`.
+- [ ] **Prod approval**: add an **Approvals** check to the prod Azure DevOps environment.
 - [ ] **Branch control** (optional): add a **Branch control** check allowing only `refs/heads/main` to each environment.
 - [ ] **Pipelines**: create pipelines from `pipelines/apiops-extract.yml` and `pipelines/apiops-publish.yml`.
 - [ ] **Pipeline permissions**: authorize `apiops-publish` on the four service connections and four environments, and `apiops-extract` on the dev service connection.

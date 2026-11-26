@@ -7,5 +7,3 @@ backends:
       url: "REPLACE-ME-prod-backend-url"
 
 namedValues: []
-
-apis: []

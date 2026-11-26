@@ -7,5 +7,3 @@ backends:
       url: "REPLACE-ME-test2-backend-url"
 
 namedValues: []
-
-apis: []

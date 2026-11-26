@@ -1,0 +1,9 @@
+# test1 environment. Non-secret values only.
+# serviceConnection must be set here: Azure DevOps resolves service connections at compile time.
+variables:
+  - name: serviceConnection
+    value: REPLACE-ME-test1-service-connection
+  - name: apimResourceGroup
+    value: REPLACE-ME-test1-resource-group
+  - name: apimServiceName
+    value: REPLACE-ME-test1-apim-name

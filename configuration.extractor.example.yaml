@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/apiops-cli/v1.0.5/schemas/v1/extractor-config.schema.json
+# EXAMPLES ONLY. Not used by any pipeline. Copy what you need into configuration.extractor.yaml.
+#
+# Names are APIM resource names, not display names. List them with:
+#   az rest --method get --query "value[].name" --url "https://management.azure.com/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ApiManagement/service/<apim>/apis?api-version=2022-08-01"
+#   (replace /apis with /backends, /namedValues, /policyFragments, /apiVersionSets, /products for other types)
+#
+# Rules:
+#   - Keep all 17 keys. A missing or empty key includes ALL resources of that type from the shared APIM.
+#   - Exact names only: no `*` or `?`, and no entry starting with `!`.
+#   - List only resources we own. Shared resources (used by other teams) stay out; they must exist in every environment.
+#   - `policies` and `workspaces` stay [].
+
+apis:
+  # Whole API, including all operations, policies, API-level diagnostics and revisions (orders-api;rev=2).
+  - orders-api
+  # API with only some operations (operation names from apim-artifacts/apis/<api>/operations/).
+  - customers-api:
+      operations:
+        - get-customer
+        - list-customers
+      diagnostics: []        # skip API-level diagnostics for this API
+      releases: []
+
+backends:
+  # Backends referenced by our policies: <set-backend-service backend-id="orders-backend" />
+  - orders-backend
+  - orders-function-backend
+
+namedValues:
+  # Named values referenced by our policies or backend credentials: {{orders-function-key}}
+  # Use the resource name. It can differ from the display name used inside {{ }}.
+  - orders-function-key
+  - orders-timeout-seconds
+
+products:
+  # Only products that contain nothing but our APIs. Shared products (e.g. starter, unlimited) stay out.
+  - orders-product
+
+policyFragments:
+  # Fragments referenced by our policies: <include-fragment fragment-id="orders-auth-fragment" />
+  - orders-auth-fragment
+
+versionSets:
+  # Version set of a versioned API (apiVersionSetId in apiInformation.json).
+  - orders-version-set
+
+# Shared or unused types: keep [].
+tags: []
+loggers: []
+diagnostics: []
+groups: []
+gateways: []
+schemas: []
+subscriptions: []
+policies: []
+policyRestrictions: []
+documentations: []
+workspaces: []

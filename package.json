@@ -1,0 +1,11 @@
+{
+  "name": "apim-apiops-cli-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@azure-tools/apiops-cli": "1.0.5"
+  }
+}

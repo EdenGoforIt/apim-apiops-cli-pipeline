@@ -1,0 +1,15 @@
+# Node.js 22, the CLI version pinned in package-lock.json, and powershell-yaml for scripts/Test-Ownership.ps1.
+steps:
+  - task: UseNode@1
+    displayName: Use Node.js 22
+    inputs:
+      version: '22.x'
+
+  - script: npm ci --no-audit --no-fund
+    displayName: Install apiops CLI
+
+  - script: npx --no-install apiops --version
+    displayName: Show apiops CLI version
+
+  - pwsh: Install-Module powershell-yaml -RequiredVersion 0.4.12 -Scope CurrentUser -Force
+    displayName: Install powershell-yaml

@@ -1,0 +1,62 @@
+# Publish: main -> dev -> test1 -> test2 -> prod.
+# Each environment: ownership check, dry-run, publish.
+# prod: dry-run stage, then approval (configured on environment apim-prod), then dry-run + publish.
+
+name: apiops-publish-$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - apim-artifacts
+      - configuration.extractor.yaml
+      - configuration.dev.yaml
+      - configuration.test1.yaml
+      - configuration.test2.yaml
+      - configuration.prod.yaml
+
+pr: none
+
+# Runs waiting on an exclusive lock execute in order instead of the newest cancelling the rest.
+lockBehavior: sequential
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Validate
+    displayName: Ownership check
+    jobs:
+      - job: Check
+        steps:
+          - checkout: self
+          - template: templates/setup.yml
+          - pwsh: >
+              ./scripts/Test-Ownership.ps1
+              -Filter configuration.extractor.yaml
+              -Artifacts apim-artifacts
+              -Overrides configuration.dev.yaml, configuration.test1.yaml, configuration.test2.yaml, configuration.prod.yaml
+            displayName: Ownership check (all environments)
+
+  - template: templates/publish-stage.yml
+    parameters:
+      environment: dev
+      dependsOn: Validate
+
+  - template: templates/publish-stage.yml
+    parameters:
+      environment: test1
+      dependsOn: Publish_dev
+
+  - template: templates/publish-stage.yml
+    parameters:
+      environment: test2
+      dependsOn: Publish_test1
+
+  - template: templates/publish-stage.yml
+    parameters:
+      environment: prod
+      dependsOn: Publish_test2
+      planStage: true

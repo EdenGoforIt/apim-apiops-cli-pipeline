@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/apiops-cli/v1.0.5/schemas/v1/override-config.schema.json
+# Overrides for dev (extract source). Examples: configuration.example.yaml
+
+backends: []
+
+namedValues: []
+
+apis: []

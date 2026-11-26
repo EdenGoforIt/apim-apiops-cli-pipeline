@@ -1,0 +1,81 @@
+# Extract: dev APIM -> branch apiops/extract-<buildId> -> pull request into main.
+# Run from main, or from a branch that changes configuration.extractor.yaml.
+
+name: apiops-extract-$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - template: variables/dev.yml
+
+steps:
+  - checkout: self
+    persistCredentials: true
+    fetchDepth: 0
+
+  - template: templates/setup.yml
+
+  - task: AzureCLI@2
+    displayName: apiops extract
+    inputs:
+      azureSubscription: ${{ variables.serviceConnection }}
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+        npx --no-install apiops extract \
+          --resource-group '$(apimResourceGroup)' \
+          --service-name '$(apimServiceName)' \
+          --subscription-id "$(az account show --query id -o tsv)" \
+          --output ./apim-artifacts \
+          --filter ./configuration.extractor.yaml \
+          --no-transitive \
+          --remove-stale
+
+  - pwsh: >
+      ./scripts/Test-Ownership.ps1
+      -Filter configuration.extractor.yaml
+      -Artifacts apim-artifacts
+    displayName: Ownership check
+
+  - bash: |
+      set -euo pipefail
+      BRANCH="apiops/extract-$(Build.BuildId)"
+
+      git config user.name "APIOps extract pipeline"
+      git config user.email "apiops-extract@noreply.local"
+      git checkout -b "$BRANCH"
+      git add --all ./apim-artifacts
+      if git diff --cached --quiet && [[ "$(Build.SourceBranch)" == "refs/heads/main" ]]; then
+        echo "No changes."
+        exit 0
+      fi
+      git commit --allow-empty -m "APIM extract from $(apimServiceName) ($(Build.BuildNumber))"
+      git push origin "$BRANCH"
+
+      jq -n \
+        --arg title "APIM extract from $(apimServiceName) ($(Build.BuildNumber))" \
+        --arg description "Extracted from $(apimServiceName) by $(Build.BuildNumber) (source branch: $(Build.SourceBranchName))." \
+        --arg source "refs/heads/$BRANCH" \
+        '{title: $title, description: $description, sourceRefName: $source, targetRefName: "refs/heads/main"}' \
+        > "$(Agent.TempDirectory)/pr.json"
+
+      STATUS=$(curl -sS -o "$(Agent.TempDirectory)/pr-response.json" -w '%{http_code}' -X POST \
+        -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
+        -H 'Content-Type: application/json' \
+        --data @"$(Agent.TempDirectory)/pr.json" \
+        "$(System.CollectionUri)$(System.TeamProjectId)/_apis/git/repositories/$(Build.Repository.ID)/pullrequests?api-version=7.1")
+
+      if [[ "$STATUS" != "201" ]]; then
+        cat "$(Agent.TempDirectory)/pr-response.json"
+        echo "##vso[task.logissue type=error]PR creation failed (HTTP $STATUS). Branch $BRANCH was pushed."
+        exit 1
+      fi
+      echo "PR: $(System.CollectionUri)$(System.TeamProject)/_git/$(Build.Repository.Name)/pullrequest/$(jq -r .pullRequestId "$(Agent.TempDirectory)/pr-response.json")"
+    displayName: Commit and open PR
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)

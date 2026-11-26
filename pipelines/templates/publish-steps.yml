@@ -1,0 +1,58 @@
+# Ownership check, dry-run, publish.
+# Requires stage variables from pipelines/variables/<environment>.yml.
+parameters:
+  - name: environment
+    type: string
+  - name: serviceConnection
+    type: string
+  - name: dryRunOnly
+    type: boolean
+    default: false
+
+steps:
+  - checkout: self
+
+  - template: setup.yml
+
+  - pwsh: >
+      ./scripts/Test-Ownership.ps1
+      -Filter configuration.extractor.yaml
+      -Artifacts apim-artifacts
+      -Overrides configuration.${{ parameters.environment }}.yaml
+    displayName: Ownership check
+
+  - task: AzureCLI@2
+    displayName: apiops publish --dry-run
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+        npx --no-install apiops publish \
+          --resource-group '$(apimResourceGroup)' \
+          --service-name '$(apimServiceName)' \
+          --subscription-id "$(az account show --query id -o tsv)" \
+          --source ./apim-artifacts \
+          --filter ./configuration.extractor.yaml \
+          --no-transitive \
+          --overrides './configuration.${{ parameters.environment }}.yaml' \
+          --dry-run
+
+  - ${{ if not(parameters.dryRunOnly) }}:
+      - task: AzureCLI@2
+        displayName: apiops publish
+        inputs:
+          azureSubscription: ${{ parameters.serviceConnection }}
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            npx --no-install apiops publish \
+              --resource-group '$(apimResourceGroup)' \
+              --service-name '$(apimServiceName)' \
+              --subscription-id "$(az account show --query id -o tsv)" \
+              --source ./apim-artifacts \
+              --filter ./configuration.extractor.yaml \
+              --no-transitive \
+              --overrides './configuration.${{ parameters.environment }}.yaml'

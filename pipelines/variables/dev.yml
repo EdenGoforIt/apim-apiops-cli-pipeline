@@ -1,0 +1,9 @@
+# dev environment. Non-secret values only.
+# serviceConnection must be set here: Azure DevOps resolves service connections at compile time.
+variables:
+  - name: serviceConnection
+    value: REPLACE-ME-dev-service-connection
+  - name: apimResourceGroup
+    value: REPLACE-ME-dev-resource-group
+  - name: apimServiceName
+    value: REPLACE-ME-dev-apim-name

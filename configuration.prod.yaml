@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/apiops-cli/v1.0.5/schemas/v1/override-config.schema.json
+# Overrides for prod. Examples: configuration.example.yaml
+
+backends:
+  - name: REPLACE-ME-backend-name
+    properties:
+      url: "REPLACE-ME-prod-backend-url"
+
+namedValues: []
+
+apis: []

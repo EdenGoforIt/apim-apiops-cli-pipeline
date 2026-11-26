@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/apiops-cli/v1.0.5/schemas/v1/extractor-config.schema.json
+# Resources managed by this repo. Used by `apiops extract --filter` and `apiops publish --filter`.
+# Examples: configuration.extractor.example.yaml
+# Rules (enforced by scripts/Test-Ownership.ps1):
+#   - All 17 keys must be present. A missing or empty key includes ALL resources of that type.
+#   - Exact APIM resource names only. No `*` or `?`, and no entry starting with `!`.
+#   - `policies` and `workspaces` stay [].
+
+apis:
+  - REPLACE-ME-api-name
+
+backends:
+  - REPLACE-ME-backend-name
+
+namedValues: []
+products: []
+policyFragments: []
+versionSets: []
+tags: []
+loggers: []
+diagnostics: []
+groups: []
+gateways: []
+schemas: []
+subscriptions: []
+policies: []
+policyRestrictions: []
+documentations: []
+workspaces: []

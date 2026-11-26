@@ -11,5 +11,21 @@ steps:
   - script: npx --no-install apiops --version
     displayName: Show apiops CLI version
 
+  # apiops publish reads the resource group before it starts (dist/clients/apim-client.js, validatePreFlight).
+  # The service connections cannot read resource groups, so that one request is replaced with a fixed 200 response.
+  # The APIM service read that follows is unchanged. Fails if the CLI version or the target code differs.
+  - pwsh: |
+      $package = 'node_modules/@azure-tools/apiops-cli'
+      $version = (Get-Content "$package/package.json" -Raw | ConvertFrom-Json).version
+      if ($version -ne '1.0.5') { throw "This patch targets apiops-cli 1.0.5, found $version. Re-check it before upgrading." }
+      $file = "$package/dist/clients/apim-client.js"
+      $target = "rgResponse = await this.request(rgUrl, { method: 'GET' });"
+      $content = [IO.File]::ReadAllText($file)
+      $count = ([regex]::Matches($content, [regex]::Escape($target))).Count
+      if ($count -ne 1) { throw "Expected 1 match of the resource group request in $file, found $count." }
+      [IO.File]::WriteAllText($file, $content.Replace($target, 'rgResponse = { status: 200 }; // resource group read skipped by pipelines/templates/setup.yml'))
+      Write-Host "Skipped resource group pre-flight read in $file"
+    displayName: Skip resource group pre-flight read
+
   - pwsh: Install-Module powershell-yaml -RequiredVersion 0.4.12 -Scope CurrentUser -Force
     displayName: Install powershell-yaml

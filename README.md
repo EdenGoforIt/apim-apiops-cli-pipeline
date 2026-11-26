@@ -43,7 +43,8 @@ The pipelines fail while placeholders remain.
 ### 2. Azure DevOps
 
 - [ ] **Service connections**: one per environment (Azure Resource Manager, workload identity federation). Names must match `pipelines/variables/<env>.yml`.
-- [ ] **Role assignments**: each service connection identity needs `API Management Service Contributor` on its APIM instance.
+- [ ] **Role assignments**: each service connection identity needs `API Management Service Contributor` on its APIM instance. No resource group role is needed (see [Resource group pre-flight](#resource-group-pre-flight)).
+- [ ] **Subscription**: the service connection's subscription must be the one that contains the APIM instance. The pipelines use it as `--subscription-id`.
 - [ ] **Environments**: one Azure DevOps environment per APIM environment (Pipelines > Environments). Names go in `devOpsEnvironment` in `pipelines/variables/<env>.yml`.
 - [ ] **Exclusive lock**: add an **Exclusive lock** check to all four environments.
 - [ ] **Prod approval**: add an **Approvals** check to the prod Azure DevOps environment.
@@ -176,10 +177,18 @@ Facts:
 - **Partial publish**: if a publish fails partway, earlier resources in that environment are already written.
 - **Publishing to dev**: overwrites changes made in dev after the last extract, for resources in the filter.
 
+## Resource group pre-flight
+
+- `apiops publish` (including `--dry-run`) first sends `GET` on the resource group, then `GET` on the APIM instance (`dist/clients/apim-client.js`, `validatePreFlight`). The resource group read needs `Microsoft.Resources/subscriptions/resourceGroups/read`.
+- The step **Skip resource group pre-flight read** in `pipelines/templates/setup.yml` replaces only the resource group request with a fixed `200` response, after `npm ci`.
+- The APIM read is unchanged. A wrong APIM name, resource group or missing permission still fails.
+- The step fails if the CLI version is not `1.0.5` or the target code is not found exactly once.
+
 ## Upgrade the CLI
 
 1. Set the exact version in `package.json`.
 2. Run `npm install`.
-3. Commit `package.json` and `package-lock.json`.
+3. Check `validatePreFlight` in `node_modules/@azure-tools/apiops-cli/dist/clients/apim-client.js`. Update the version and target line in the **Skip resource group pre-flight read** step in `pipelines/templates/setup.yml`, or remove the step if the resource group read is gone.
+4. Commit `package.json`, `package-lock.json` and `pipelines/templates/setup.yml`.
 
 Release notes: [CHANGELOG.md](https://github.com/Azure/apiops-cli/blob/v1.0.5/CHANGELOG.md).
